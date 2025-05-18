@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Vision Chat - Eng \ Mohammed Lutf</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --main-content-bg: #ffffff;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --primary-accent: #6f42c1; /* Main purple accent */
+            --secondary-accent: #e9ecef;
+            --border-color: #dee2e6;
+            --input-bg: #f1f3f5;
+            --user-message-bg: #e6dcf7;
+            --ai-message-bg: #f1f3f5;
+            --font-family: 'Inter', sans-serif;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            --modal-bg: #ffffff;
+            --modal-text-color: #343a40;
+            --modal-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            --modal-button-bg: var(--primary-accent);
+            --modal-button-text: #ffffff;
+            --modal-button-hover-bg: #5a32a3; /* Darker purple for hover */
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        /* --- Welcome Modal Styles --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s 0.3s linear;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease;
+        }
+
+        .welcome-modal {
+            background-color: var(--modal-bg);
+            padding: 35px 40px; /* Increased padding */
+            border-radius: 12px; /* More rounded */
+            box-shadow: var(--modal-shadow);
+            text-align: center;
+            max-width: 480px; /* Slightly wider */
+            width: 90%;
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+        }
+        .modal-overlay.active .welcome-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .modal-icon {
+            font-size: 48px; /* Larger icon */
+            color: var(--primary-accent);
+            margin-bottom: 20px;
+            /* Using an SVG for a nicer icon */
+        }
+        .modal-icon svg {
+            width: 50px;
+            height: 50px;
+        }
+
+
+        .welcome-modal h2 {
+            font-size: 26px; /* Slightly larger title */
+            color: var(--primary-accent);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .welcome-modal p {
+            font-size: 16px;
+            color: var(--modal-text-color);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        .welcome-modal p.creator-info {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 25px; /* More space before creator info */
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .welcome-modal p.creator-info strong {
+            font-style: normal;
+            color: var(--primary-accent);
+            font-weight: 500;
+        }
+
+        .modal-ok-button {
+            background-color: var(--modal-button-bg);
+            color: var(--modal-button-text);
+            border: none;
+            padding: 12px 30px; /* More padding */
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: inline-block; /* To allow padding and centering */
+        }
+        .modal-ok-button:hover {
+            background-color: var(--modal-button-hover-bg);
+            transform: translateY(-1px); /* Subtle hover effect */
+        }
+        .modal-ok-button:active {
+            transform: translateY(0px);
+        }
+
+
+        /* --- App Container (Hidden initially by modal) --- */
+        .app-container {
+            display: flex;
+            width: 95vw;
+            max-width: 1400px;
+            height: 90vh;
+            max-height: 900px;
+            background-color: var(--sidebar-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            /* Initially hidden if modal is active, JS will handle this */
+        }
+
+        /* ... (Rest of your existing CSS for .sidebar, .main-content, etc. remains the same) ... */
+        .sidebar {
+            width: 240px;
+            background-color: var(--sidebar-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            transition: width 0.3s ease; /* For smooth transition */
+        }
+
+        .sidebar-header {
+            display: flex; /* To center logo if needed */
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .sidebar-header .logo {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            flex-shrink: 0; /* Prevent logo from shrinking */
+        }
+        .sidebar-header .logo::before {
+            content: 'GV';
+        }
+
+
+        .sidebar-nav {
+            flex-grow: 1;
+            overflow-y: auto; /* In case of many nav items */
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            white-space: nowrap; /* Prevent text wrapping initially */
+            overflow: hidden; /* Hide overflowing text */
+        }
+        .nav-item .nav-text {
+            margin-left: 12px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0; /* Prevent icon from shrinking */
+            stroke-width: 1.5;
+            stroke: currentColor;
+        }
+
+        .nav-item.active,
+        .nav-item:hover {
+            background-color: var(--secondary-accent);
+            color: var(--primary-accent);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--main-content-bg);
+            overflow: hidden; /* Prevent its own scrollbars, chat-messages will scroll */
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+
+        .app-title-version h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .app-title-version span {
+            font-size: 12px;
+            color: var(--text-muted);
+            background-color: var(--secondary-accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .upgrade-plan-btn {
+            background-color: var(--text-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-right: 15px; /* Adjusted margin */
+            font-size: 14px; /* Slightly smaller on all screens */
+        }
+        .upgrade-plan-btn:hover {
+            background-color: #000;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background-color: var(--primary-accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .user-avatar::before {
+            content: attr(data-initial);
+        }
+
+        .user-info .user-name {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap; /* Prevent wrapping */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Add ellipsis if name is too long */
+            max-width: 150px; /* Adjust as needed */
+        }
+        .user-info .user-plan {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chat-interface {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 30px 20px 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            max-width: 75%;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInSlideUp 0.5s forwards;
+        }
+        @keyframes fadeInSlideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            color: white;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .user-message .message-avatar { background-color: var(--primary-accent); }
+        .ai-message .message-avatar { background-color: var(--text-muted); }
+        .user-message .message-avatar::before { content: 'U'; }
+        .ai-message .message-avatar::before, .ai-avatar::before { content: 'GV'; }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            line-height: 1.5;
+            word-break: break-word; /* Allow long words to break */
+        }
+        .message-content p { margin-bottom: 5px; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content img.analyzed-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: var(--border-radius);
+            margin-bottom: 8px;
+            display: block;
+            border: 1px solid var(--border-color);
+        }
+
+        .user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .user-message .message-avatar { margin-right: 0; margin-left: 12px; }
+        .user-message .message-content {
+            background-color: var(--user-message-bg);
+            color: var(--text-color);
+            border-top-right-radius: 0;
+        }
+
+        .ai-message { align-self: flex-start; }
+        .ai-message .message-content {
+            background-color: var(--ai-message-bg);
+            border-top-left-radius: 0;
+        }
+        .ai-message.initial-greeting .message-content {
+            background-color: transparent;
+            padding-left: 0;
+        }
+        .ai-message.initial-greeting .message-avatar {
+            background-color: var(--primary-accent);
+        }
+
+        .chat-input-area {
+            display: flex;
+            align-items: flex-end;
+            padding: 15px;
+            background-color: var(--main-content-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            position: relative;
+            box-shadow: var(--box-shadow);
+            flex-shrink: 0; /* Prevent input area from shrinking */
+        }
+
+        .image-preview-container {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 15px;
+            background-color: white;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+            animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #imagePreview {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .remove-image-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--text-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .upload-btn, .send-btn {
+            background: none;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s ease, transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .upload-btn:hover, .send-btn:hover {
+            color: var(--primary-accent);
+            transform: scale(1.1);
+        }
+        .upload-btn svg, .send-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        #userInput {
+            flex-grow: 1;
+            border: none;
+            padding: 10px;
+            font-family: var(--font-family);
+            font-size: 15px;
+            background-color: transparent;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+            outline: none;
+        }
+
+        .disclaimer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 15px;
+            padding-bottom: 10px; /* Ensure it's visible */
+            flex-shrink: 0;
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track { background: var(--secondary-accent); border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        .loading-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-muted);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            .app-container {
+                width: 100vw;
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                flex-direction: row;
+            }
+
+            .sidebar {
+                width: 70px;
+                padding: 15px 10px;
+            }
+            .sidebar-header .logo {
+                margin-bottom: 20px;
+            }
+            .nav-item {
+                padding: 12px;
+                justify-content: center;
+            }
+            .nav-item .nav-text {
+                opacity: 0;
+                visibility: hidden;
+                width: 0;
+                margin-left: 0;
+            }
+             .sidebar-footer .nav-item {
+                padding: 12px;
+                justify-content: center;
+            }
+
+
+            .main-header {
+                padding: 15px;
+            }
+            .app-title-version h1 {
+                font-size: 18px;
+            }
+            .app-title-version span {
+                display: none;
+            }
+            .upgrade-plan-btn {
+                padding: 6px 10px;
+                font-size: 13px;
+                margin-right: 10px;
+            }
+            .user-info .user-name {
+                max-width: 100px;
+            }
+            .user-info .user-plan {
+                display: none;
+            }
+
+
+            .chat-interface {
+                padding: 0 15px 10px 15px;
+            }
+            .chat-messages {
+                padding: 15px 0;
+            }
+            .message {
+                max-width: 85%;
+            }
+
+            .chat-input-area {
+                padding: 10px;
+                margin-top: 10px;
+            }
+            #userInput {
+                padding: 8px;
+                font-size: 14px;
+            }
+            .upload-btn, .send-btn {
+                padding: 8px;
+            }
+            .upload-btn svg, .send-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+             .disclaimer {
+                font-size: 11px;
+                margin-top: 10px;
+            }
+            .image-preview-container {
+                left: 10px;
+            }
+            #imagePreview {
+                max-width: 80px;
+                max-height: 80px;
+            }
+            .welcome-modal { /* Modal adjustments for smaller screens */
+                padding: 25px;
+            }
+            .welcome-modal h2 {
+                font-size: 22px;
+            }
+            .welcome-modal p {
+                font-size: 15px;
+            }
+            .modal-icon {
+                font-size: 40px;
+                margin-bottom: 15px;
+            }
+            .modal-icon svg {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+             .sidebar {
+                width: 60px;
+                padding: 10px 5px;
+            }
+            .main-header {
+                padding: 10px;
+            }
+            .app-title-version h1 {
+                font-size: 16px;
+            }
+             .upgrade-plan-btn {
+                display: none;
+            }
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                margin-right: 8px;
+            }
+             .user-info .user-name {
+                font-size: 13px;
+                max-width: 80px;
+            }
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+                margin-right: 8px;
+            }
+            .user-message .message-avatar {
+                margin-left: 8px;
+            }
+            .message-content {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Modal HTML -->
+    <div class="modal-overlay active" id="welcomeModalOverlay">
+        <div class="welcome-modal">
+            <div class="modal-icon">
+                <!-- Simple SVG Chat/Idea Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm8 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+            </div>
+            <h2>Welcome to Gemini Vision!</h2>
+            <p>Explore the power of AI with image analysis and intelligent chat. Ask questions, get insights, and discover what Gemini can do.</p>
+            <p class="creator-info">This web app was created by <strong>Eng. Mohammed Akram Lutf</strong>.</p>
+            <button class="modal-ok-button" id="modalOkButton">Let's Go!</button>
+        </div>
+    </div>
+
+    <!-- App Container (Main Chat UI) -->
+    <div class="app-container" id="appContainer" style="visibility: hidden;"> <!-- Initially hidden -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"></div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span class="nav-text">History</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <span class="nav-text">Image Hub</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <a href="#" class="nav-item">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span class="nav-text">Help</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <div class="app-title-version">
+                    <h1>Gemini Vision</h1>
+                    <span>Beta 1.0</span>
+                </div>
+                <div class="user-profile">
+                    <button class="upgrade-plan-btn">Upgrade Plan</button>
+                    <div class="user-avatar" data-initial="M"></div>
+                    <div class="user-info">
+                        <span class="user-name">Eng \ Mohammed lutf</span>
+                        <span class="user-plan">Free Plan</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="chat-interface">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message initial-greeting">
+                        <div class="message-avatar ai-avatar"></div>
+                        <div class="message-content">
+                            <p>Hello, Eng \ Mohammed lutf!</p>
+                            <p>What can I help you figure out today? Ask me anything or upload an image for analysis.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div id="imagePreviewContainer" class="image-preview-container">
+                        <img id="imagePreview" src="#" alt="Image preview" />
+                        <button id="removeImageBtn" class="remove-image-btn">×</button>
+                    </div>
+                    <label for="imageUpload" class="upload-btn" title="Upload Image">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </label>
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                    <textarea id="userInput" placeholder="Ask me anything or describe your image..."></textarea>
+                    <button id="sendButton" class="send-btn" title="Send Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+                <p class="disclaimer">Gemini Vision can make mistakes. Check important info.</p>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "https://cdn.jsdelivr.net/npm/@google/generative-ai/+esm";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Modal Elements
+            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
+            const modalOkButton = document.getElementById('modalOkButton');
+            const appContainer = document.getElementById('appContainer'); // To show the app after modal
+            const userInput = document.getElementById('userInput'); // For focusing after modal
+
+            // Show modal on load
+            // The modal overlay starts with class 'active' in HTML, so it's visible.
+
+            modalOkButton.addEventListener('click', () => {
+                welcomeModalOverlay.classList.remove('active');
+                // After the modal fades out, make the app container visible and focus input
+                setTimeout(() => {
+                    welcomeModalOverlay.style.display = 'none'; // Fully hide after transition
+                    appContainer.style.visibility = 'visible';
+                    appContainer.style.opacity = '1'; // You can add a fade-in for app if desired
+                    userInput.focus(); // Focus on the chat input
+                }, 300); // Match transition duration
+            });
+
+
+            // --- Rest of your existing Gemini Chat App JavaScript ---
+            const API_KEY = "AIzaSyCM-kq_CQxBnzpNHjlbVrQoYryGE8c6MbY"; 
+
+            if (!API_KEY || API_KEY === "YOUR_API_KEY" || API_KEY.length < 30) {
+                const errorMsg = "CRITICAL: API Key not set, is a placeholder, or seems invalid. The app will not work. This key is visible in the browser. DO NOT USE IN PRODUCTION.";
+                alert(errorMsg);
+                console.error(errorMsg);
+                // If API key is bad, we might still want the modal to work, but disable chat.
+                // Consider if you want to hide the modal and show an error instead of the app.
+                document.getElementById('sendButton').disabled = true;
+                document.getElementById('userInput').disabled = true;
+                document.getElementById('imageUpload').disabled = true;
+                return; // Potentially stop further chat app init if API key is bad
+            }
+
+            let genAI;
+            let textModel;
+            let visionModel;
+
+            try {
+                genAI = new GoogleGenerativeAI(API_KEY);
+                textModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+                visionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
+
+            } catch (error) {
+                console.error("Failed to initialize GoogleGenerativeAI. Check API Key and SDK loading.", error);
+                alert("Failed to initialize AI Services. Please check the console for errors. The API key might be invalid or the SDK could not be loaded correctly.");
+                return;
+            }
+
+            const chatMessages = document.getElementById('chatMessages');
+            // userInput is already defined above for modal logic
+            const sendButton = document.getElementById('sendButton');
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+
+            let currentImageFile = null;
+
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = (userInput.scrollHeight) + 'px';
+            });
+
+            imageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    if (file.size > 4 * 1024 * 1024) {
+                        alert("Image size is too large. Please upload an image smaller than 4MB.");
+                        imageUpload.value = '';
+                        return;
+                    }
+                    currentImageFile = file;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                    userInput.placeholder = "Describe the image or ask a question...";
+                }
+            });
+
+            removeImageBtn.addEventListener('click', () => {
+                currentImageFile = null;
+                imagePreview.src = '#';
+                imagePreviewContainer.style.display = 'none';
+                imageUpload.value = '';
+                userInput.placeholder = "Ask me anything...";
+            });
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            async function sendMessage() {
+                const messageText = userInput.value.trim();
+                if (!messageText && !currentImageFile) return;
+
+                const imageWasSent = currentImageFile != null;
+
+                userInput.disabled = true;
+                sendButton.disabled = true;
+                imageUpload.disabled = true;
+                removeImageBtn.style.pointerEvents = 'none';
+
+                displayMessage(messageText, 'user', currentImageFile ? imagePreview.src : null);
+                userInput.value = '';
+                userInput.style.height = 'auto';
+
+                const aiMessageDiv = displayMessage('', 'ai', null, true);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                try {
+                    let responseFromAI;
+                    const generationConfig = {};
+                    const safetySettings = [
+                        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                    ];
+
+                    if (currentImageFile) {
+                        const imagePart = await fileToGenerativePart(currentImageFile, currentImageFile.type);
+                        const textForImagePrompt = messageText || "Describe this image.";
+                        const promptParts = [{ text: textForImagePrompt }, imagePart];
+                        
+                        const result = await visionModel.generateContent({
+                            contents: [{ role: "user", parts: promptParts }],
+                            generationConfig,
+                            safetySettings
+                        });
+                        responseFromAI = result.response;
+                    } else { 
+                        const result = await textModel.generateContent({
+                            contents: [{ role: "user", parts: [{text: messageText}] }],
+                            generationConfig,
+                            safetySettings
+                        });
+                        responseFromAI = result.response;
+                    }
+                    
+                    if (responseFromAI && typeof responseFromAI.text === 'function') {
+                        const aiResponseText = responseFromAI.text();
+                        updateAiMessage(aiMessageDiv, aiResponseText);
+                    } else if (responseFromAI && responseFromAI.candidates && responseFromAI.candidates[0] && responseFromAI.candidates[0].finishReason === "SAFETY") {
+                         updateAiMessage(aiMessageDiv, "The response was blocked due to safety settings. Please try a different prompt.");
+                    } else if (responseFromAI && responseFromAI.promptFeedback && responseFromAI.promptFeedback.blockReason) {
+                        updateAiMessage(aiMessageDiv, `Request blocked: ${responseFromAI.promptFeedback.blockReason}. Please revise your prompt.`);
+                    }
+                    else {
+                        console.warn("AI response format unexpected or empty:", responseFromAI);
+                        updateAiMessage(aiMessageDiv, "Sorry, I couldn't generate a proper response. The AI might have returned an empty or unhandled result.");
+                    }
+
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    let errorMessage = "Sorry, I encountered an error. Please try again.";
+                    if (error.message) {
+                        errorMessage += ` Details: ${error.message}`;
+                    }
+                     if (error.message && (error.message.includes("API key not valid") || error.message.toLowerCase().includes("invalid api key"))) {
+                        errorMessage = "API Key is not valid. Please check your API key and ensure it has the 'Generative Language API' (or 'Vertex AI API' if applicable) enabled in Google Cloud Console.";
+                    } else if (error.message && (error.message.includes("quota") || error.message.toLowerCase().includes("quota exceeded"))) {
+                        errorMessage = "You have exceeded your API quota. Please check your Google Cloud console.";
+                    } else if (error.message && (error.message.includes("permission denied") || error.message.toLowerCase().includes("permission_denied"))) {
+                        errorMessage = "Permission denied. Ensure the API key has the correct permissions for the Generative Language API (or Vertex AI API).";
+                    } else if (error.message && (error.message.includes("not found for API version") || error.message.includes("is not supported for generateContent") || error.message.includes("has been deprecated"))) {
+                        errorMessage = "A model was not found, is not supported, or has been deprecated. Please ensure model names are up-to-date (e.g., 'gemini-1.5-flash-latest'). Details: " + error.message;
+                    } else if (error.message && error.message.includes("Invalid value at 'contents[0].parts[0]'")) {
+                        errorMessage = "There was an issue with the request structure, particularly how text and images are combined. This might be an internal app error. Details: " + error.message;
+                    }
+                    updateAiMessage(aiMessageDiv, errorMessage);
+                } finally {
+                    userInput.disabled = false;
+                    sendButton.disabled = false;
+                    imageUpload.disabled = false;
+                    removeImageBtn.style.pointerEvents = 'auto';
+
+                    if (imageWasSent) {
+                        removeImageBtn.click();
+                    }
+
+                    // Don't focus here if modal was just closed, it's handled by modal logic
+                    // userInput.focus(); 
+                }
+            }
+
+            function displayMessage(text, sender, imageUrl = null, isLoading = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', `${sender}-message`);
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.classList.add('message-avatar');
+                if (sender === 'ai') avatarDiv.classList.add('ai-avatar');
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+
+                if (imageUrl) {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = imageUrl;
+                    imgElement.alt = sender === 'user' ? "User uploaded image" : "Analyzed image";
+                    imgElement.classList.add('analyzed-image');
+                    contentDiv.appendChild(imgElement);
+                }
+
+                if (isLoading) {
+                    const loadingDots = document.createElement('div');
+                    loadingDots.classList.add('loading-dots');
+                    loadingDots.innerHTML = '<span></span><span></span><span></span>';
+                    contentDiv.appendChild(loadingDots);
+                } else if (text || (sender === 'user' && imageUrl)) {
+                    const paragraphs = (text || "").split('\n');
+                    paragraphs.forEach(paraText => {
+                        if (paraText.trim() !== "") {
+                            const p = document.createElement('p');
+                            p.textContent = paraText;
+                            contentDiv.appendChild(p);
+                        }
+                    });
+                }
+
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return contentDiv;
+            }
+
+            function updateAiMessage(contentDiv, text) {
+                const loadingDots = contentDiv.querySelector('.loading-dots');
+                if (loadingDots) loadingDots.remove();
+
+                const paragraphs = text.split('\n');
+                paragraphs.forEach(paraText => {
+                    if (paraText.trim() !== "") {
+                        const p = document.createElement('p');
+                        p.textContent = paraText;
+                        contentDiv.appendChild(p);
+                    }
+                });
+                if (contentDiv.children.length === 0 && !contentDiv.querySelector('img')) {
+                    const p = document.createElement('p');
+                    p.textContent = "[AI response was empty]";
+                    p.style.fontStyle = "italic";
+                    p.style.color = "var(--text-muted)";
+                    contentDiv.appendChild(p);
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async function fileToGenerativePart(file, mimeType) {
+                const base64EncodedDataPromise = new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = (err) => reject(err);
+                    reader.readAsDataURL(file);
+                });
+                try {
+                    const data = await base64EncodedDataPromise;
+                    return { inlineData: { data, mimeType } };
+                } catch (error) {
+                    console.error("Error converting file to base64:", error);
+                    throw new Error("Could not read the image file.");
+                }
+            }
+            // Initial focus is handled by modal logic after closing.
+            // userInput.focus(); 
+        });
+    </script>
+</body>
+</html>
